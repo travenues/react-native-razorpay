@@ -1,35 +1,18 @@
-'use strict';
-
-import { NativeModules, NativeEventEmitter } from 'react-native';
-
-const razorpayEvents = new NativeEventEmitter(NativeModules.RazorpayEventEmitter);
-
-const removeSubscriptions = () => {
-  razorpayEvents.removeAllListeners('Razorpay::PAYMENT_SUCCESS');
-  razorpayEvents.removeAllListeners('Razorpay::PAYMENT_ERROR');
-  razorpayEvents.removeAllListeners('Razorpay::EXTERNAL_WALLET_SELECTED');
-};
+import { NativeModules } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 class RazorpayCheckout {
   static open(options, successCallback, errorCallback) {
     return new Promise(function(resolve, reject) {
-      razorpayEvents.addListener('Razorpay::PAYMENT_SUCCESS', (data) => {
-        let resolveFn = successCallback || resolve;
-        resolveFn(data);
-        removeSubscriptions();
+      NativeModules.RazorpayCheckout.open(options, result => {
+        if (result.error) {
+          reject(result.error);
+          if (errorCallback) errorCallback(result.error);
+        } else {
+          resolve(result);
+          if (successCallback) successCallback(result);
+        }
       });
-      razorpayEvents.addListener('Razorpay::PAYMENT_ERROR', (data) => {
-        let rejectFn = errorCallback || reject;
-        rejectFn(data);
-        removeSubscriptions();
-      });
-      NativeModules.RazorpayCheckout.open(options);
-    });
-  }
-  static onExternalWalletSelection(externalWalletCallback) {
-    razorpayEvents.addListener('Razorpay::EXTERNAL_WALLET_SELECTED', (data) => {
-      externalWalletCallback(data);
-      removeSubscriptions();
     });
   }
 }
